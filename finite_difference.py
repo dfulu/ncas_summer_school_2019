@@ -44,7 +44,7 @@ def run(nx, nt, nsave, g=9.81, T=1e4):
     
     # set initial conditions
     u0 = np.cos(np.linspace(0,1,nx)*2*np.pi)
-    h0 = np.cos(np.linspace(0,1,nx)*2*np.pi)+2
+    h0 = np.cos(np.linspace(0,1,nx)*2*np.pi)+2000
     
     # set store for those values to save
     u_all = np.zeros((nt//nsave, nx))
@@ -88,19 +88,25 @@ def run(nx, nt, nsave, g=9.81, T=1e4):
 
 if __name__=="__main__":
     # set parameters
-    T=1e8 # make this 2 powers above nt
-    nt = int(1e6)
-    nframes = 1000
+    T=1e6 # make this 2 powers above nt
+    nt = int(1e5)
+    nframes = 200
     dtbydx=0.1
-    make_plot=False
+    make_plot=True
+    nx=100
     
     # derived quantities
-    nx = int(dtbydx*diam*nt/T)
-    print(nx)
+    dtbydx = (T/nt)/(diam/nx)
+    print("dt/dx:", dtbydx)
+    print("c:", dtbydx*np.sqrt(2000*9.81))
+    #nx = int(dtbydx*diam*nt/T)
+    print('nx:', nx)
     nsave = nt//nframes
+    print('save every:', nsave)
     
     # run simulation
     u_all, h_all = run(nx, nt, nsave, g=9.81, T=T)
+    print('finished run')
     
     if make_plot:
         # set up fig and axes
@@ -112,15 +118,15 @@ if __name__=="__main__":
 
         minu, maxu = np.nanmin(u_all), np.nanmax(u_all)
         minh, maxh = np.nanmin(h_all), np.nanmax(h_all)
-        minu = minu if minu>-np.inf else -1
-        maxu = maxu if maxu<np.inf else 1
-        minh = minh if minh>-np.inf else 0
-        maxh = maxh if maxh<np.inf else 3
+        #minu = minu if minu>-np.inf else -1
+        #maxu = maxu if maxu<np.inf else 1
+        #minh = minh if minh>-np.inf else 0
+        #maxh = maxh if maxh<np.inf else 3
         ax1.set_ylim(minu, maxu)
         ax2.set_ylim(minh, maxh)
 
         # time and space info for axis
-        t = np.arange(0, nt, nsave)
+        t = np.arange(nframes)
         x = np.linspace(0, diam, nx)
         X = np.repeat(x[:, np.newaxis], nt//nsave, 1).T
 
@@ -133,7 +139,8 @@ if __name__=="__main__":
         anim = amp.Animation([u_block, h_block], timeline = timeline)
         plt.tight_layout()
         anim.controls()
-        anim.save_gif('line1') # save animation for docs
+        anim.save_gif('line7') # save animation for docs
         plt.show()
-        print('DONE')
+        
+    print('DONE')
 
