@@ -6,23 +6,34 @@ r = 6371e3 # radius of earth in meters
 diam = 2*np.pi*r
 
 
-def evolve_u_ct(h, u_minus, dtbydx, g):
+def evolve_u_ct(h, u, u_minus, dtbydx, g):
     """
     Args:
         h: h at current time
+        u: u at current time
         u_minus : u at previous time step
     returns:
         u at next time step,
     """
-    u_plus = -g*dtbydx * (np.roll(h,-1) - np.roll(h, 1)) + u_minus
-    return u_plus
+    term1 = -g * (np.roll(h,-1) - np.roll(h, 1)) 
+    term2 = -u * (np.roll(u,-1) - np.roll(u, 1))
+    return dtbydx*(term1+term2)+u_minus
 
-def evolve_h_ct(u, h_minus, dtbydx, H):
-    h_plus = -H*dtbydx * (np.roll(u,-1) - np.roll(u, 1)) + h_minus
-    return h_plus
+def evolve_h_ct(h, u, h_minus, dtbydx):
+    """
+    Args:
+        h: h at current time
+        u: u at current time
+        h_minus : h at previous time step
+    returns:
+        h at next time step,
+    """
+    term1 = - h * (np.roll(u,-1) - np.roll(u, 1))
+    term2 = - u * (np.roll(h,-1) - np.roll(h, 1))
+    return dtbydx*(term1+term2)+h_minus
 
 
-def run(nx, nt, nsave, H=1000, g=9.81, T=1e4):
+def run(nx, nt, nsave, g=9.81, T=1e4):
     """
     Ags:
         nx: number of x steps
@@ -31,8 +42,8 @@ def run(nx, nt, nsave, H=1000, g=9.81, T=1e4):
     """
     
     # set initial conditions
-    u0 = np.sin(np.linspace(0,1,nx)*2*np.pi)
-    h0 = 100*np.cos(np.linspace(0,1,nx)*2*np.pi)
+    u0 = np.cos(np.linspace(0,1,nx)*2*np.pi)
+    h0 = np.cos(np.linspace(0,1,nx)*2*np.pi)
     
     # set store for those values to save
     u_all = np.zeros((nt//nsave, nx))
@@ -56,8 +67,8 @@ def run(nx, nt, nsave, H=1000, g=9.81, T=1e4):
     for i in range(nt):
         # evolve foreward by timestep
         u_plus, h_plus = (
-            evolve_u_ct(h, u_minus, dtbydx, g), 
-            evolve_h_ct(u, h_minus, dtbydx, H)
+            evolve_u_ct(h, u, u_minus, dtbydx, g), 
+            evolve_h_ct(h, u, h_minus, dtbydx)
         )
         # update the previous value
         u_minus = u
@@ -76,9 +87,9 @@ def run(nx, nt, nsave, H=1000, g=9.81, T=1e4):
 
 if __name__=="__main__":
     nx = 1000
-    nt = 1000
-    nsave=10
-    u_all, h_all = run(nx, nt, nsave, g=9.81, H=1000, T=1e4)
+    nt = int(1e6)
+    nsave=1000
+    u_all, h_all = run(nx, nt, nsave, g=9.81, T=1e6)
     
     import numpy as np
     import matplotlib.pyplot as plt
