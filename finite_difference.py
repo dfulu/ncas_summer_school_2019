@@ -61,7 +61,7 @@ def evolve_h_btcs(h, u_plus, dtbydx):
     return dtbydx*(term1+term2) + h
 
 
-def run_ctcs(nx, nt, nsave, g=9.81, T=1e4):
+def run_ctcs(nx, nt, nframes, g=9.81, T=1e4):
     """
     Runs CTCS on an A-grid
     
@@ -76,8 +76,10 @@ def run_ctcs(nx, nt, nsave, g=9.81, T=1e4):
     h0 = np.cos(np.linspace(0,1,nx)*2*np.pi)+2000
     
     # set store for those values to save
-    u_all = np.zeros((nt//nsave, nx))
-    h_all = np.zeros((nt//nsave, nx))
+    u_all = np.zeros((nframes, nx))
+    h_all = np.zeros((nframes, nx))
+    savewhen = np.linspace(0,1,nframes)
+    j=1
     u_all[0] = u0
     h_all[0] = h0
     
@@ -107,14 +109,15 @@ def run_ctcs(nx, nt, nsave, g=9.81, T=1e4):
         h = h_plus
         
         # save vaklues if on save run
-        if (i%nsave)==0:
-            u_all[i//nsave] = u
-            h_all[i//nsave] = h
+        if (i/nt)>=savewhen[j]:
+            u_all[j] = u
+            h_all[j] = h
+            j+=1
             
     return u_all, h_all
 
 
-def run_ftbtcs(nx, nt, nsave, g=9.81, T=1e4):
+def run_ftbtcs(nx, nt, nframes, g=9.81, T=1e4):
     """
     Runs semi-implicit integration on the A-grid
     Ags:
@@ -128,8 +131,10 @@ def run_ftbtcs(nx, nt, nsave, g=9.81, T=1e4):
     h0 = np.cos(np.linspace(0,1,nx)*2*np.pi)+2000
     
     # set store for those values to save
-    u_all = np.zeros((nt//nsave, nx))
-    h_all = np.zeros((nt//nsave, nx))
+    u_all = np.zeros((nframes, nx))
+    h_all = np.zeros((nframes, nx))
+    savewhen = np.linspace(0,1,nframes)
+    j=1
     u_all[0] = u0
     h_all[0] = h0
     
@@ -158,9 +163,10 @@ def run_ftbtcs(nx, nt, nsave, g=9.81, T=1e4):
         h = h_plus
         
         # save vaklues if on save run
-        if (i%nsave)==0:
-            u_all[i//nsave] = u
-            h_all[i//nsave] = h
+        if (i/nt)>=savewhen[j]:
+            u_all[j] = u
+            h_all[j] = h
+            j+=1
             
     return u_all, h_all
      
@@ -168,10 +174,10 @@ def run_ftbtcs(nx, nt, nsave, g=9.81, T=1e4):
 if __name__=="__main__":
     # set parameters
     T=5e6 # make this 2 powers above nt
-    nt = int(1e5)
+    nt = int(1e4)
     nframes = 200
     dtbydx=0.1
-    make_plot=True
+    make_plot=False
     nx=100
     gifname = "ctcs-ftbtcs1"
     
@@ -227,4 +233,13 @@ if __name__=="__main__":
         plt.show()
         
     print('DONE')
+    
+    
+"""
+funtion to test lengths of saved frames
+def f(nt, nsave):
+    x0 = np.zeros((nt//nsave+1*((nt%nsave)!=0), nx)).shape[0]
+    x1 = [i//nsave for i in np.arange(nt) if i%nsave==0][-1]
+    print(x0,x1)
+"""
 
