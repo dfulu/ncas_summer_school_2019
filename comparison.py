@@ -9,7 +9,7 @@ Nt = int(1e4) # was 1e5
 Nx=100
 nframes = 200
 
-def calc_rmse(y1,y2):
+def calc_rmse(y1,y2, relative=False):
     '''
     presume y is longer
     '''
@@ -18,10 +18,16 @@ def calc_rmse(y1,y2):
     y2_ = np.append(y2, y2[:,:1], axis=1)
     f = interp1d(x2,y2_, kind='quadratic', axis=1)
     y2_int = f(x1)
-    return ((y1 - y2_int)**2).mean()**0.5
+    if relative:
+        rmse = (((y1 - y2_int)/(0.5*(y1 + y2_int)))**2).mean()**0.5
+    else:
+        rmse = ((y1 - y2_int)**2).mean()**0.5
+    return rmse
 
-def calc_all_rsmes(x, base, factors):
-    return [calc_rmse(x[i], base) for i in range(len(factors)-1)]
+def calc_all_rsmes(x, base, relative=False):
+    if type(base)!=list:
+        base = [base for _ in range(len(x))]
+    return [calc_rmse(x[i], base[i], relative) for i in range(len(x))]
 
 def save_lists(filename,
     u_ctcs_list, h_ctcs_list, 
@@ -84,32 +90,47 @@ for factor in factors:
     )
     
 
-# calculate RSME for all the runs from the best run
-u_ctcs_rmse = calc_all_rsmes(u_ctcs_list, u_ctcs_list[-1], factors)
-h_ctcs_rmse = calc_all_rsmes(h_ctcs_list, h_ctcs_list[-1], factors)
-u_ftbtcs_rmse = calc_all_rsmes(u_ftbtcs_list, u_ftbtcs_list[-1], factors)
-h_ftbtcs_rmse = calc_all_rsmes(h_ftbtcs_list, h_ftbtcs_list[-1], factors)
-
-nxs = [Nx*f for f in factors[:-1]]
+nxs = [Nx*f for f in factors]
     
 def plotter(ax, factors, y, label, ylabel="RMSE"):
-    ax.semilogx(factors,y, label=label)
+    ax.loglog(factors,y, label=label, marker='.')
     ax.set_ylabel(ylabel)
     ax.legend()
 
-# plot the thing
-fig, (ax1, ax2) = plt.subplots(2,1, sharex=True)
+# Consistency with self
 
-plotter(ax1,nxs,u_ctcs_rmse, label="$u_{CTCS}$",
-        ylabel="$RMSE_{u_{method}^{maxRes}}$")
-plotter(ax1,nxs,u_ftbtcs_rmse, label="$u_{FTBTCS}$",
-       ylabel="$RMSE_{u_{method}^{maxRes}}$")
-plotter(ax2,nxs,h_ftbtcs_rmse, label="$h_{FTBTCS}$",
-        ylabel="$RMSE_{h_{method}^{maxRes}}$")
-plotter(ax2,nxs,h_ctcs_rmse, label="$h_{CTCS}$",
-       ylabel="$RMSE_{h_{method}^{maxRes}}$")
+# calculate RSME for all the runs from the best run
+u_ctcs_rmse = calc_all_rsmes(u_ctcs_list[:-1], u_ctcs_list[-1])
+h_ctcs_rmse = calc_all_rsmes(h_ctcs_list[:-1], h_ctcs_list[-1])
+u_ftbtcs_rmse = calc_all_rsmes(u_ftbtcs_list[:-1], u_ftbtcs_list[-1])
+h_ftbtcs_rmse = calc_all_rsmes(h_ftbtcs_list[:-1], h_ftbtcs_list[-1])
 
+fig, (ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(8,6))
+plotter(ax1,nxs[:-1],u_ctcs_rmse, label="$u_{CTCS}$",
+        ylabel="RMSE $({u_{method}^{maxRes}})$")
+plotter(ax1,nxs[:-1],u_ftbtcs_rmse, label="$u_{FTBTCS}$",
+       ylabel="RMSE $({u_{method}^{maxRes}})$")
+plotter(ax2,nxs[:-1],h_ftbtcs_rmse, label="$h_{FTBTCS}$",
+        ylabel="RMSE $({h_{method}^{maxRes}})$")
+plotter(ax2,nxs[:-1],h_ctcs_rmse, label="$h_{CTCS}$",
+       ylabel="RMSE $({h_{method}^{maxRes}})$")
 ax2.set_xlabel("$n_x$ ($n_t = 100n_x$) c = {:.3f}".format(courant))
+plt.savefig('rmse_self_logy.png', dpi=400)
+plt.show()
+
+# Consistency with each other
+# calculate RMSE between methods at same resolution
+u_comp_rmse = calc_all_rsmes(u_ctcs_list, u_ftbtcs_list)
+h_comp_rmse = calc_all_rsmes(h_ctcs_list, h_ftbtcs_list)
+
+fig, ax1 = plt.subplots(1,1, sharex=True, figsize=(8,6))
+plotter(ax1,nxs,u_comp_rmse, label="$u$",
+        ylabel="RMSE")
+plotter(ax1,nxs,h_comp_rmse, label="$h$",
+       ylabel="RMSE")
+
+ax1.set_xlabel("$n_x$ ($n_t = 100n_x$) c = {:.3f}".format(courant))
+plt.savefig('rmse_comparison_loglog.png', dpi=400)
 plt.show()
     
         
